@@ -92,7 +92,7 @@
   <input class="search-box" type="text" id="search" placeholder="🔍 Buscar crime, artigo, palavra-chave..." oninput="buscar()">
   <div class="filtros">
     <button class="filtro-btn active" onclick="filtrar(this,'')">🗂 Todos</button><button class="filtro-btn" onclick="filtrar(this,'TÍTULO X: Dos Crimes Contra a Fé Pública')">Título X – Fé Pública</button><button class="filtro-btn" onclick="filtrar(this,'TÍTULO XI: Dos Crimes Contra a Administração Pública')">Título XI – Adm. Pública</button><button class="filtro-btn" onclick="filtrar(this,'TÍTULO XII: Dos Crimes Contra a Administração da Justiça')">Título XII – Adm. Justiça</button>
-    <button class="filtro-btn" style="background:linear-gradient(135deg,#e94560,#c73050);border-color:#e94560;color:#fff;font-weight:700;margin-left:8px;" onclick="document.getElementById('secao-questoes').scrollIntoView({behavior:'smooth'})">🎯 Questões de Revisão</button>
+    <button class="filtro-btn" style="background:linear-gradient(135deg,#e94560,#c73050);border-color:#e94560;color:#fff;font-weight:700;margin-left:8px;" onclick="mostrarQuestoes()">🎯 Questões de Revisão</button>
   </div>
 </div>
 
@@ -1758,6 +1758,21 @@
 <script>
 let filtroAtivo = '';
 
+function mostrarQuestoes() {
+  document.querySelector('.controles').style.display = 'none';
+  document.querySelector('.main').style.display = 'none';
+  document.getElementById('scrollTop').style.display = 'none';
+  document.getElementById('secao-questoes').style.display = 'block';
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function mostrarMaterial() {
+  document.getElementById('secao-questoes').style.display = 'none';
+  document.querySelector('.controles').style.display = 'block';
+  document.querySelector('.main').style.display = 'block';
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
 function toggleCard(header) {
   const body = header.nextElementSibling;
   const icon = header.querySelector('.toggle-icon');
@@ -1928,8 +1943,11 @@ document.getElementById('scrollTop').style.justifyContent = 'center';
 }
 </style>
 
-<section class="qr-section" id="secao-questoes">
+<section class="qr-section" id="secao-questoes" style="display:none">
   <div class="main-qr">
+    <div style="margin-bottom:16px">
+      <button onclick="mostrarMaterial()" style="background:transparent;border:1px solid var(--border);color:var(--sub);padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s" onmouseover="this.style.borderColor='#e94560';this.style.color='#fff'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--sub)'">← Voltar ao Material</button>
+    </div>
     <div class="qr-title">
       <h2>🎯 QUESTÕES DE REVISÃO</h2>
       <p>Crimes em Espécie · Fé Pública e Administração Pública · Estilo OAB e Concursos</p>
