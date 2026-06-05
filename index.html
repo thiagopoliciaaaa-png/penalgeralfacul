@@ -1814,5 +1814,415 @@ window.addEventListener('scroll', () => {
 document.getElementById('scrollTop').style.alignItems = 'center';
 document.getElementById('scrollTop').style.justifyContent = 'center';
 </script>
+
+<!-- ============================================================ -->
+<!-- QUESTÕES DE REVISÃO — inserido por Thiago Oliveira           -->
+<!-- ============================================================ -->
+<style>
+/* ===== QUESTÕES DE REVISÃO ===== */
+.qr-section { background:var(--bg); padding:40px 0 60px; border-top:3px solid var(--accent1); margin-top:40px; }
+.qr-section .main-qr { max-width:900px; margin:0 auto; padding:0 20px; }
+.qr-title { text-align:center; margin-bottom:30px; }
+.qr-title h2 { font-size:1.6rem; color:#fff; letter-spacing:2px; text-shadow:0 0 20px rgba(233,69,96,0.5); }
+.qr-title p { color:var(--sub); font-size:0.85rem; margin-top:6px; }
+
+/* Placar */
+.qr-placar { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-bottom:28px; }
+.qr-placar-item { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 22px; text-align:center; min-width:110px; }
+.qr-placar-item .pnum { font-size:1.6rem; font-weight:700; color:#fff; }
+.qr-placar-item .plabel { font-size:11px; color:var(--sub); margin-top:2px; }
+.qr-placar-item.acerto .pnum { color:#4caf50; }
+.qr-placar-item.erro .pnum { color:#e94560; }
+.qr-placar-item.perc .pnum { color:#e8a838; }
+
+/* Barra de progresso */
+.qr-progress-bar { background:var(--border); border-radius:10px; height:8px; margin-bottom:28px; overflow:hidden; }
+.qr-progress-fill { background:linear-gradient(90deg, var(--accent1), var(--accent2)); height:100%; border-radius:10px; transition:width 0.4s ease; width:0%; }
+
+/* Menu de questões */
+.qr-menu { margin-bottom:20px; }
+.qr-menu-title { color:var(--sub); font-size:13px; margin-bottom:12px; }
+.qr-menu-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
+.qr-menu-btn { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 8px; cursor:pointer; color:var(--text); font-size:13px; text-align:center; transition:all 0.2s; position:relative; }
+.qr-menu-btn:hover { border-color:var(--accent1); color:#fff; }
+.qr-menu-btn.respondida-certa { border-color:#4caf50; background:rgba(76,175,80,0.1); }
+.qr-menu-btn.respondida-errada { border-color:#e94560; background:rgba(233,69,96,0.1); }
+.qr-menu-btn .qm-num { font-weight:700; font-size:14px; color:#fff; display:block; }
+.qr-menu-btn .qm-tema { font-size:11px; color:var(--sub); display:block; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.qr-menu-btn .qm-icon { position:absolute; top:6px; right:8px; font-size:12px; }
+
+/* Card da questão */
+.qr-card { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:none; }
+.qr-card.ativo { display:block; animation:fadeIn 0.3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.qr-card-header { background:linear-gradient(135deg,#1a0a2e,#0d0d1a); padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.qr-card-header .qnum { background:var(--accent1); color:#fff; font-weight:700; font-size:12px; padding:4px 12px; border-radius:20px; }
+.qr-card-header .qtema { color:var(--sub); font-size:13px; }
+.qr-card-header .qnav { display:flex; gap:8px; }
+.qr-card-header .qnav button { background:transparent; border:1px solid var(--border); color:var(--sub); padding:4px 12px; border-radius:6px; cursor:pointer; font-size:12px; transition:all 0.2s; }
+.qr-card-header .qnav button:hover { border-color:var(--accent1); color:#fff; }
+
+.qr-enunciado { padding:20px; color:var(--text); font-size:14px; line-height:1.8; border-bottom:1px solid var(--border); }
+
+.qr-alternativas { padding:16px 20px; }
+.qr-alt { display:flex; align-items:flex-start; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; cursor:pointer; transition:all 0.2s; }
+.qr-alt:hover:not(.bloqueada) { border-color:var(--accent1); background:rgba(233,69,96,0.05); }
+.qr-alt.selecionada { border-color:var(--accent1); background:rgba(233,69,96,0.1); }
+.qr-alt.correta { border-color:#4caf50; background:rgba(76,175,80,0.12); }
+.qr-alt.errada { border-color:#e94560; background:rgba(233,69,96,0.1); opacity:0.8; }
+.qr-alt.bloqueada { cursor:default; }
+.qr-alt-letra { background:var(--border); color:#fff; font-weight:700; font-size:13px; min-width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.qr-alt.correta .qr-alt-letra { background:#4caf50; }
+.qr-alt.errada .qr-alt-letra { background:#e94560; }
+.qr-alt.selecionada .qr-alt-letra { background:var(--accent1); }
+.qr-alt-texto { color:var(--text); font-size:14px; line-height:1.6; }
+
+.qr-actions { padding:0 20px 20px; display:flex; gap:10px; flex-wrap:wrap; }
+.qr-btn { padding:10px 22px; border-radius:8px; border:none; cursor:pointer; font-weight:600; font-size:13px; transition:all 0.2s; }
+.qr-btn-responder { background:var(--accent1); color:#fff; }
+.qr-btn-responder:hover { background:#c73050; }
+.qr-btn-responder:disabled { background:#444; cursor:default; }
+.qr-btn-menu { background:transparent; border:1px solid var(--border); color:var(--sub); }
+.qr-btn-menu:hover { border-color:var(--accent1); color:#fff; }
+
+/* Feedback / Gabarito */
+.qr-feedback { margin:0 20px 20px; border-radius:10px; overflow:hidden; display:none; }
+.qr-feedback.acertou { border:2px solid #4caf50; }
+.qr-feedback.errou { border:2px solid #e94560; }
+.qr-feedback-header { padding:14px 18px; display:flex; align-items:center; gap:12px; }
+.qr-feedback.acertou .qr-feedback-header { background:rgba(76,175,80,0.15); }
+.qr-feedback.errou .qr-feedback-header { background:rgba(233,69,96,0.15); }
+.qr-feedback-header .fb-icon { font-size:22px; }
+.qr-feedback-header .fb-resultado { font-weight:700; font-size:1rem; color:#fff; }
+.qr-feedback-header .fb-gabarito { font-size:13px; color:var(--sub); margin-top:2px; }
+
+.qr-gabarito-body { padding:16px 18px; background:#0d0d1a; }
+.qr-gab-bloco { margin-bottom:18px; }
+.qr-gab-bloco:last-child { margin-bottom:0; }
+.qr-gab-label { font-size:11px; font-weight:700; color:var(--sub); letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+.qr-gab-content { color:var(--text); font-size:13px; line-height:1.7; }
+.qr-gab-content .lei-line { background:#0a0a18; border-left:3px solid #2a2a4a; padding:6px 10px; border-radius:4px; font-family:monospace; font-size:12px; color:#c0c0e0; margin-bottom:4px; }
+.qr-gab-content .alt-item { padding:4px 0; border-bottom:1px solid #1a1a2a; font-size:13px; }
+.qr-gab-content .alt-item:last-child { border-bottom:none; }
+.qr-gab-content .alt-certa { color:#4caf50; font-weight:600; }
+.qr-gab-content .alt-errada { color:var(--sub); }
+.qr-gab-destaque { background:rgba(233,69,96,0.1); border:1px solid rgba(233,69,96,0.3); padding:10px 14px; border-radius:6px; color:#ffcc00; font-weight:600; font-size:13px; }
+.qr-gab-frase { background:rgba(76,175,80,0.1); border:1px solid rgba(76,175,80,0.3); padding:10px 14px; border-radius:6px; color:#4caf50; font-weight:600; font-size:13px; }
+
+/* Resultado final */
+.qr-resultado-final { display:none; background:var(--card); border:2px solid var(--accent2); border-radius:14px; padding:32px; text-align:center; margin-top:20px; }
+.qr-resultado-final h3 { font-size:1.5rem; color:#fff; margin-bottom:8px; }
+.qr-resultado-final .rf-perc { font-size:3rem; font-weight:700; color:var(--accent2); margin:16px 0; }
+.qr-resultado-final p { color:var(--sub); font-size:14px; }
+.qr-resultado-final .rf-msg { color:#fff; font-size:1rem; margin-top:12px; font-weight:600; }
+
+.qr-footer { text-align:center; margin-top:40px; padding-top:16px; border-top:1px solid var(--border); color:#2a2a4a; font-size:11px; letter-spacing:1px; }
+
+@media(max-width:600px){
+  .qr-menu-grid { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); }
+  .qr-card-header { flex-direction:column; align-items:flex-start; gap:8px; }
+  .qr-actions { flex-direction:column; }
+  .qr-btn { width:100%; text-align:center; }
+}
+</style>
+
+<section class="qr-section" id="secao-questoes">
+  <div class="main-qr">
+    <div class="qr-title">
+      <h2>🎯 QUESTÕES DE REVISÃO</h2>
+      <p>Crimes em Espécie · Fé Pública e Administração Pública · Estilo OAB e Concursos</p>
+    </div>
+
+    <div class="qr-placar">
+      <div class="qr-placar-item"><div class="pnum" id="qr-total">20</div><div class="plabel">Total</div></div>
+      <div class="qr-placar-item acerto"><div class="pnum" id="qr-acertos">0</div><div class="plabel">Acertos</div></div>
+      <div class="qr-placar-item erro"><div class="pnum" id="qr-erros">0</div><div class="plabel">Erros</div></div>
+      <div class="qr-placar-item perc"><div class="pnum" id="qr-perc">0%</div><div class="plabel">Aproveitamento</div></div>
+    </div>
+
+    <div class="qr-progress-bar"><div class="qr-progress-fill" id="qr-progress"></div></div>
+
+    <!-- Menu de questões -->
+    <div class="qr-menu" id="qr-menu">
+      <div class="qr-menu-title">Escolha uma questão para resolver:</div>
+      <div class="qr-menu-grid" id="qr-menu-grid"></div>
+    </div>
+
+    <!-- Cards das questões -->
+    <div id="qr-cards-wrap"></div>
+
+    <!-- Resultado final -->
+    <div class="qr-resultado-final" id="qr-resultado-final">
+      <h3>🏁 Simulado Concluído!</h3>
+      <div class="rf-perc" id="rf-perc">0%</div>
+      <p id="rf-stats"></p>
+      <div class="rf-msg" id="rf-msg"></div>
+      <br>
+      <button class="qr-btn qr-btn-menu" style="margin-top:14px" onclick="reiniciarQuestoes()">↺ Refazer Simulado</button>
+    </div>
+
+    <div class="qr-footer">Material elaborado por Thiago Oliveira · Direito Penal · Revisão Final</div>
+  </div>
+</section>
+
+<script>
+(function(){
+const QR_DATA = [{"num": 1, "tema": "Moeda falsa", "enunciado": "João recebeu, de boa-fé, uma nota falsa de R$ 100,00 em uma feira. Ao chegar em casa, percebeu que a nota era falsa. No dia seguinte, para não ficar no prejuízo, utilizou a nota em uma padaria, adquirindo produtos e recebendo troco em dinheiro verdadeiro. Nesse caso, João:", "alternativas": {"A": "não pratica crime, pois recebeu a nota de boa-fé.", "B": "pratica o crime de moeda falsa na modalidade simples do caput do art. 289 do Código Penal.", "C": "pratica o crime privilegiado de moeda falsa, por ter recebido a nota de boa-fé e depois restituído à circulação.", "D": "pratica apenas estelionato, independentemente da qualidade da falsificação.", "E": "pratica crime de petrechos para falsificação de moeda."}, "gabarito": "C", "artigo_titulo": "Art. 289, §2º, do Código Penal", "artigo_texto": "Art. 289 - Falsificar, fabricando-a ou alterando-a, moeda metálica ou papel-moeda de curso legal no país ou no estrangeiro: Pena - reclusão, de três a doze anos, e multa.<br>§ 1º - Nas mesmas penas incorre quem, por conta própria ou alheia, importa ou exporta, adquire, vende, troca, cede, empresta, guarda ou introduz na circulação moeda falsa.<br>§ 2º - Quem, tendo recebido de boa-fé, como verdadeira, moeda falsa ou alterada, a restitui à circulação, depois de conhecer a falsidade, é punido com detenção, de seis meses a dois anos, e multa.", "comentario": "O ponto principal da questão é a boa-fé inicial. João recebeu a nota sem saber que era falsa. Somente depois descobriu a falsidade e, para não ficar no prejuízo, colocou a moeda falsa novamente em circulação. Isso não se enquadra no §1º, mas sim no §2º, chamado de forma privilegiada do crime de moeda falsa.", "analise": {"A": "Errada. O fato de ter recebido de boa-fé não torna a conduta atípica se, depois de descobrir a falsidade, o agente restitui a nota à circulação.", "B": "Errada. O caput pune quem falsifica fabricando ou alterando moeda. João não fabricou nem alterou a moeda.", "C": "Correta. Receber de boa-fé e, depois de conhecer a falsidade, restituir à circulação configura o art. 289, §2º.", "D": "Errada. Nem sempre será estelionato. Se a moeda falsa possui potencialidade de enganar, aplica-se o crime contra a fé pública.", "E": "Errada. Petrechos para falsificação de moeda envolvem instrumentos especialmente destinados à falsificação, o que não ocorreu."}, "exemplo": "A pessoa recebe uma nota falsa em um comércio, descobre em casa que a nota é falsa e, mesmo assim, usa a nota em outro estabelecimento. Responde pelo art. 289, §2º.", "pegadinha": "A banca troca a ordem: pergunta se boa-fé exclui o crime quando o agente DEPOIS introduz a nota — não exclui, só privilegia.", "frase": "Boa-fé inicial = privilégio (§2º). Má-fé inicial = crime pleno (§1º)."}, {"num": 2, "tema": "Moeda falsa e falsificação grosseira", "enunciado": "Pedro imprimiu notas falsas de R$ 50,00 em uma impressora comum, utilizando papel simples. A falsificação era grosseira e facilmente perceptível por qualquer pessoa. Em seguida, tentou utilizar uma das notas em um mercado. Considerando o entendimento dominante, a conduta de Pedro:", "alternativas": {"A": "configura necessariamente o crime de moeda falsa, pois houve tentativa de introdução em circulação.", "B": "configura crime contra a fé pública, ainda que a falsificação seja grosseira.", "C": "não configura moeda falsa quando a falsificação é grosseira, podendo caracterizar estelionato ou sua tentativa.", "D": "configura o crime de falsificação de documento público.", "E": "configura o crime de emissão de título ao portador sem permissão legal."}, "gabarito": "C", "artigo_titulo": "Art. 289 do Código Penal", "artigo_texto": "Art. 289 - Falsificar, fabricando-a ou alterando-a, moeda metálica ou papel-moeda de curso legal no país ou no estrangeiro: Pena - reclusão, de três a doze anos, e multa.<br>§ 1º - Nas mesmas penas incorre quem, por conta própria ou alheia, importa ou exporta, adquire, vende, troca, cede, empresta, guarda ou introduz na circulação moeda falsa.<br>§ 2º - Quem, tendo recebido de boa-fé, como verdadeira, moeda falsa ou alterada, a restitui à circulação, depois de conhecer a falsidade, é punido com detenção, de seis meses a dois anos, e multa.<br>§ 3º - É punido com reclusão, de três a quinze anos, e multa, o funcionário público ou diretor, gerente, ou fiscal de banco de emissão que fabrica, emite ou autoriza a fabricação ou emissão: I - de moeda com título ou peso inferior ao determinado em lei; II - de papel-moeda em quantidade superior à autorizada.<br>§ 4º - Nas mesmas penas incorre quem desvia e faz circular moeda, cuja circulação não estava ainda autorizada.", "comentario": "Para configurar crime de moeda falsa, a falsificação precisa ter capacidade mínima de enganar. Quando a falsificação é grosseira, perceptível de imediato por qualquer pessoa, falta lesão à fé pública. Nesse caso, pode haver estelionato ou tentativa de estelionato, dependendo do caso concreto.", "analise": {"A": "Errada. A mera tentativa de introduzir nota grosseiramente falsificada não gera, necessariamente, moeda falsa.", "B": "Errada. A falsificação grosseira afasta o crime contra a fé pública.", "C": "Correta. Falsificação grosseira não configura moeda falsa, podendo caracterizar estelionato ou tentativa.", "D": "Errada. Moeda não é documento público para esse fim.", "E": "Errada. Não houve emissão de título ao portador."}, "exemplo": "A pessoa imprime uma nota em papel sulfite comum, sem textura, sem marca d’água e com imagem visivelmente malfeita. Não há moeda falsa se a falsificação é grosseira.", "pegadinha": "A banca afirma que qualquer tentativa de circular moeda falsa é crime — falso: falsificação grosseira vira estelionato.", "frase": "Falsificação grosseira = Súmula 73 STJ = Estelionato (Justiça Estadual)."}, {"num": 3, "tema": "Crimes assimilados ao de moeda falsa", "enunciado": "Um indivíduo reúne fragmentos verdadeiros de várias cédulas inutilizadas e, com eles, forma uma cédula aparentemente íntegra, tentando colocá-la novamente em circulação. A conduta descrita se enquadra, em tese, no crime de:", "alternativas": {"A": "moeda falsa, art. 289 do Código Penal.", "B": "crimes assimilados ao de moeda falsa, art. 290 do Código Penal.", "C": "petrechos para falsificação de moeda, art. 291 do Código Penal.", "D": "emissão de título ao portador sem permissão legal, art. 292 do Código Penal.", "E": "falsificação de documento particular, art. 298 do Código Penal."}, "gabarito": "B", "artigo_titulo": "Art. 290 do Código Penal", "artigo_texto": "Art. 290 - Formar cédula, nota ou bilhete representativo de moeda com fragmentos de cédulas, notas ou bilhetes verdadeiros; suprimir, em nota, cédula ou bilhete recolhidos, para o fim de restituí-los à circulação, sinal indicativo de sua inutilização; restituir à circulação cédula, nota ou bilhete em tais condições, ou já recolhidos para o fim de inutilização: Pena - reclusão, de dois a oito anos, e multa.<br>Parágrafo único - O máximo da reclusão é elevado a doze anos e multa, se o crime é cometido por funcionário que trabalha na repartição onde o dinheiro se achava recolhido, ou nela tem fácil ingresso, em razão do cargo.", "comentario": "O art. 290 pune condutas assimiladas à moeda falsa. A diferença principal é que, aqui, o agente não cria moeda falsa do zero, mas utiliza fragmentos verdadeiros ou retira sinais de inutilização de cédulas recolhidas.", "analise": {"A": "Errada. O art. 289 trata da fabricação ou alteração da moeda falsa propriamente dita.", "B": "Correta. Formar cédula com fragmentos verdadeiros é conduta expressamente prevista no art. 290.", "C": "Errada. Petrechos são instrumentos destinados à falsificação.", "D": "Errada. O art. 292 trata de títulos, fichas, vales ou documentos com promessa de pagamento.", "E": "Errada. Cédula monetária não é documento particular nesse contexto."}, "exemplo": "Alguém junta pedaços de notas verdadeiras rasgadas para formar uma nova cédula aparentemente válida. Responde pelo art. 290.", "pegadinha": "A banca coloca &#39;fragmentos verdadeiros&#39; e quer que você marque moeda falsa (art. 289) — o crime correto é o assimilado (art. 290).", "frase": "Fragmentos verdadeiros + nova cédula = Art. 290. Fabricou do zero = Art. 289."}, {"num": 4, "tema": "Petrechos para falsificação de moeda", "enunciado": "Durante cumprimento de mandado de busca, policiais encontraram na residência de Carlos uma impressora comum, usada para trabalhos escolares, sem qualquer adaptação especial para falsificação de moeda. Não havia papel-moeda, matrizes, chapas ou instrumentos específicos. Nesse caso, a posse da impressora comum:", "alternativas": {"A": "configura, por si só, crime de petrechos para falsificação de moeda.", "B": "configura crime impossível de moeda falsa.", "C": "não configura o art. 291 do Código Penal, pois o objeto deve ser especialmente destinado à falsificação.", "D": "configura falsificação de documento particular.", "E": "configura crime de moeda falsa consumado."}, "gabarito": "C", "artigo_titulo": "Art. 291 do Código Penal", "artigo_texto": "Art. 291 - Fabricar, adquirir, fornecer, a título oneroso ou gratuito, possuir ou guardar maquinismo, aparelho, instrumento ou qualquer objeto especialmente destinado à falsificação de moeda: Pena - reclusão, de dois a seis anos, e multa.", "comentario": "O art. 291 é crime obstáculo, pois antecipa a punição para antes da falsificação da moeda. Contudo, o objeto precisa ser especialmente destinado à falsificação. Uma impressora comum, sem adaptação específica, não basta.", "analise": {"A": "Errada. Impressora comum não configura automaticamente petrecho.", "B": "Errada. A questão não descreve tentativa de moeda falsa.", "C": "Correta. O objeto precisa ser especialmente destinado à falsificação.", "D": "Errada. Não houve falsificação de documento particular.", "E": "Errada. Não houve fabricação ou alteração de moeda."}, "exemplo": "Ter uma impressora doméstica em casa não é crime. Diferente seria guardar chapas, matrizes, papel-moeda e equipamentos próprios para falsificação.", "pegadinha": "A banca coloca impressora comum e quer que você marque art. 291 — o objeto precisa ser ESPECIALMENTE destinado à falsificação.", "frase": "Impressora comum ≠ petrecho. Só é crime se for especialmente destinado a falsificar moeda."}, {"num": 5, "tema": "Falsificação de papéis públicos", "enunciado": "Um sujeito falsifica selo destinado ao controle tributário de bebidas alcoólicas, com o objetivo de aparentar regularidade fiscal dos produtos. Nesse caso, a conduta se amolda, em tese, ao crime de:", "alternativas": {"A": "falsificação de documento público, art. 297 do Código Penal.", "B": "falsificação de documento particular, art. 298 do Código Penal.", "C": "falsificação de papéis públicos, art. 293 do Código Penal.", "D": "falsa identidade, art. 307 do Código Penal.", "E": "adulteração de sinal identificador de veículo automotor, art. 311 do Código Penal."}, "gabarito": "C", "artigo_titulo": "Art. 293 do Código Penal", "artigo_texto": "Art. 293 - Falsificar, fabricando-os ou alterando-os: I – selo destinado a controle tributário, papel selado ou qualquer papel de emissão legal destinado à arrecadação de tributo; II - papel de crédito público que não seja moeda de curso legal; III - vale postal; IV - cautela de penhor, caderneta de depósito de caixa econômica ou de outro estabelecimento mantido por entidade de direito público; V - talão, recibo, guia, alvará ou qualquer outro documento relativo a arrecadação de rendas públicas ou a depósito ou caução por que o poder público seja responsável; VI - bilhete, passe ou conhecimento de empresa de transporte administrada pela União, por Estado ou por Município: Pena - reclusão, de dois a oito anos, e multa.", "comentario": "O art. 293 protege papéis públicos ligados à arrecadação, crédito público ou controle fiscal. Selo destinado ao controle tributário é exemplo clássico.", "analise": {"A": "Errada. O art. 297 é mais geral e trata de documento público comum.", "B": "Errada. Não se trata de documento particular.", "C": "Correta. Selo de controle tributário entra no art. 293.", "D": "Errada. Não houve atribuição de falsa identidade.", "E": "Errada. Não se trata de veículo automotor."}, "exemplo": "Falsificar selo fiscal de bebida alcoólica para simular pagamento de tributo configura falsificação de papéis públicos.", "pegadinha": "A banca mistura selo tributário (Art. 293) com selo autenticador/brasão (Art. 296). Fique atento ao tipo de selo.", "frase": "Selo que arrecada tributo = Art. 293. Selo que autentica/carimbra = Art. 296."}, {"num": 6, "tema": "Falsificação de selo ou sinal público", "enunciado": "Um indivíduo falsifica carimbo oficial de tabelião para autenticar escrituras falsas de imóveis. A conduta descrita corresponde, em tese, ao crime de:", "alternativas": {"A": "falsificação de papéis públicos, pois todo selo é papel público.", "B": "falsificação do selo ou sinal público.", "C": "falsidade ideológica.", "D": "falso reconhecimento de firma ou letra.", "E": "certidão ou atestado falso."}, "gabarito": "B", "artigo_titulo": "Art. 296 do Código Penal", "artigo_texto": "Art. 296 - Falsificar, fabricando-os ou alterando-os: I - selo público destinado a autenticar atos oficiais da União, de Estado ou de Município; II - selo ou sinal atribuído por lei a entidade de direito público, ou a autoridade, ou sinal público de tabelião: Pena - reclusão, de dois a seis anos, e multa.<br>§ 1º - Incorre nas mesmas penas: I - quem faz uso do selo ou sinal falsificado; II - quem utiliza indevidamente o selo ou sinal verdadeiro em prejuízo de outrem ou em proveito próprio ou alheio; III - quem altera, falsifica ou faz uso indevido de marcas, logotipos, siglas ou quaisquer outros símbolos identificadores de órgãos ou entidades da Administração Pública.<br>§ 2º - Se o agente é funcionário público, e comete o crime prevalecendo-se do cargo, aumenta-se a pena de sexta parte.", "comentario": "O art. 296 trata de selo ou sinal público com função autenticadora. A pegadinha é diferenciar do art. 293: selo tributário é art. 293; selo/carimbo autenticador é art. 296.", "analise": {"A": "Errada. Nem todo selo é art. 293. O selo autenticador é art. 296.", "B": "Correta. Carimbo oficial de tabelião é sinal público.", "C": "Errada. Não se trata de mentira em documento verdadeiro, mas falsificação do sinal.", "D": "Errada. O art. 300 pune o funcionário que reconhece firma falsa como verdadeira.", "E": "Errada. Certidão ou atestado falso possui finalidade específica."}, "exemplo": "Falsificar carimbo de tabelião para autenticar escritura falsa configura art. 296.", "pegadinha": "A banca quer que você marque falsidade ideológica — mas o crime é na falsificação do carimbo/sinal em si, não no conteúdo.", "frase": "Falsificou o carimbo do tabelião = Art. 296. Mentiu no conteúdo do documento = Art. 299."}, {"num": 7, "tema": "Falsificação de documento público", "enunciado": "Marcos altera fisicamente uma Carteira Nacional de Habilitação verdadeira, substituindo a fotografia original pela sua, com o objetivo de se passar pelo titular do documento. A conduta de Marcos caracteriza, em tese:", "alternativas": {"A": "falsidade ideológica, pois a mentira está no conteúdo.", "B": "falsa identidade, pois ele apenas se passou por outra pessoa.", "C": "uso de documento de identidade alheio, pois o documento era verdadeiro.", "D": "falsificação de documento público, pois houve adulteração material de documento público verdadeiro.", "E": "certidão falsa."}, "gabarito": "D", "artigo_titulo": "Art. 297 do Código Penal", "artigo_texto": "Art. 297 - Falsificar, no todo ou em parte, documento público, ou alterar documento público verdadeiro: Pena - reclusão, de dois a seis anos, e multa.<br>§ 1º - Se o agente é funcionário público, e comete o crime prevalecendo-se do cargo, aumenta-se a pena de sexta parte.<br>§ 2º - Para os efeitos penais, equiparam-se a documento público o emanado de entidade paraestatal, o título ao portador ou transmissível por endosso, as ações de sociedade comercial, os livros mercantis e o testamento particular.", "comentario": "A falsificação de documento público é falso material. O documento sofre alteração física: rasura, montagem, substituição de fotografia, inserção de dados fisicamente adulterados etc.", "analise": {"A": "Errada. Falsidade ideológica ocorre quando o documento é verdadeiro, mas contém informação falsa.", "B": "Errada. A falsa identidade normalmente ocorre sem documento falso.", "C": "Errada. O art. 308 exige documento verdadeiro de outra pessoa sem adulteração.", "D": "Correta. Houve adulteração material de documento público verdadeiro.", "E": "Errada. CNH não é certidão ou atestado."}, "exemplo": "Trocar a fotografia de uma CNH verdadeira para se passar pelo titular é alteração material de documento público.", "pegadinha": "A banca diz que testamento particular é documento particular — FALSO. O CP equipara a documento público (art. 297, §2º).", "frase": "Cheque, testamento particular, ações = equiparados a documento PÚBLICO pelo Art. 297, §2º."}, {"num": 8, "tema": "Documento público por equiparação", "enunciado": "De acordo com o Código Penal, para fins de falsificação de documento público, equipara-se a documento público:", "alternativas": {"A": "apenas o documento emitido diretamente por órgão público.", "B": "somente o documento assinado por servidor público.", "C": "o testamento particular e o título ao portador ou transmissível por endosso.", "D": "apenas a certidão emitida por cartório.", "E": "qualquer documento particular com assinatura reconhecida em firma."}, "gabarito": "C", "artigo_titulo": "Art. 297, §2º, do Código Penal", "artigo_texto": "Art. 297 - Falsificar, no todo ou em parte, documento público, ou alterar documento público verdadeiro: Pena - reclusão, de dois a seis anos, e multa.<br>§ 1º - Se o agente é funcionário público, e comete o crime prevalecendo-se do cargo, aumenta-se a pena de sexta parte.<br>§ 2º - Para os efeitos penais, equiparam-se a documento público o emanado de entidade paraestatal, o título ao portador ou transmissível por endosso, as ações de sociedade comercial, os livros mercantis e o testamento particular.", "comentario": "Esse parágrafo é muito cobrado. A banca costuma afirmar que cheque, título de crédito ou testamento particular são documentos particulares. Para fins penais, contudo, o art. 297, §2º, equipara determinados documentos a documento público.", "analise": {"A": "Errada. O conceito penal é mais amplo.", "B": "Errada. Não depende apenas de assinatura de servidor.", "C": "Correta. Testamento particular e título ao portador/transmissível por endosso são equiparados.", "D": "Errada. A certidão é documento público, mas a alternativa restringe indevidamente.", "E": "Errada. Reconhecimento de firma não transforma qualquer documento em documento público para esse fim."}, "exemplo": "Falsificar testamento particular pode configurar falsificação de documento público por equiparação penal.", "pegadinha": "A banca cita cheque querendo que você marque documento particular — pelo CP é equiparado a documento público.", "frase": "Título ao portador / por endosso = documento público para o Código Penal."}, {"num": 9, "tema": "Falsificação de cartão de crédito", "enunciado": "João clona fisicamente um cartão de crédito, fabricando novo cartão plástico com dados de terceiro. Segundo o Código Penal, o cartão de crédito ou débito é equiparado a:", "alternativas": {"A": "moeda falsa.", "B": "documento público.", "C": "documento particular.", "D": "papel público.", "E": "sinal público."}, "gabarito": "C", "artigo_titulo": "Art. 298 do Código Penal", "artigo_texto": "Art. 298 - Falsificar, no todo ou em parte, documento particular ou alterar documento particular verdadeiro: Pena - reclusão, de um a cinco anos, e multa.<br>Falsificação de cartão Parágrafo único. Para fins do disposto no caput, equipara-se a documento particular o cartão de crédito ou débito.", "comentario": "O cartão de crédito ou débito é equiparado a documento particular. Essa é uma pegadinha muito comum, porque muitos alunos confundem cartão com documento público ou com moeda.", "analise": {"A": "Errada. Cartão de crédito não é moeda falsa.", "B": "Errada. O Código Penal equipara a documento particular, não público.", "C": "Correta. É exatamente o que prevê o parágrafo único do art. 298.", "D": "Errada. Não é papel público.", "E": "Errada. Não é selo ou sinal público."}, "exemplo": "Clonar fisicamente cartão de crédito de terceiro configura falsificação de documento particular.", "pegadinha": "A banca confunde clonagem de cartão (art. 298) com falsificação de documento público. Cartão = documento PARTICULAR.", "frase": "Cheque = público (§2º, art. 297). Cartão de crédito/débito = particular (parágrafo único, art. 298)."}, {"num": 10, "tema": "Falsidade ideológica", "enunciado": "Maria comparece ao cartório e declara falsamente ser mãe biológica de uma criança, fazendo inserir essa informação em registro público verdadeiro, sem qualquer rasura ou alteração física no documento. A conduta de Maria caracteriza, em tese:", "alternativas": {"A": "falsificação de documento público.", "B": "falsificação de documento particular.", "C": "falsidade ideológica.", "D": "uso de documento falso.", "E": "falsa identidade."}, "gabarito": "C", "artigo_titulo": "Art. 299 do Código Penal", "artigo_texto": "Art. 299 - Omitir, em documento público ou particular, declaração que dele devia constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre fato juridicamente relevante: Pena - reclusão, de um a cinco anos, e multa, se o documento é público, e reclusão de um a três anos, e multa, se o documento é particular.<br>Parágrafo único - Se o agente é funcionário público, e comete o crime prevalecendo-se do cargo, ou se a falsificação ou alteração é de assentamento de registro civil, aumenta-se a pena de sexta parte.", "comentario": "Na falsidade ideológica, o documento é materialmente verdadeiro, mas a informação nele inserida é falsa. A mentira está na ideia, no conteúdo, e não na forma física do documento.", "analise": {"A": "Errada. Não houve alteração física do documento.", "B": "Errada. Registro público não é documento particular.", "C": "Correta. Inserir declaração falsa em documento verdadeiro configura falsidade ideológica.", "D": "Errada. O documento não foi usado como falso por terceiro, mas formado com conteúdo falso.", "E": "Errada. Falsa identidade é tipo subsidiário e, em regra, não envolve inserção de dado falso em documento público."}, "exemplo": "Declarar falsamente paternidade em cartório, fazendo constar informação falsa em registro verdadeiro, é falsidade ideológica.", "pegadinha": "A banca coloca documento verdadeiro com conteúdo falso e quer que você marque falso material — é falso IDEOLÓGICO.", "frase": "Papel limpo + mentira = Falso Ideológico (Art. 299). Rasura/adulteração = Falso Material (Art. 297)."}, {"num": 11, "tema": "Falso reconhecimento de firma ou letra", "enunciado": "Um escrevente de cartório, no exercício da função pública, reconhece como verdadeira assinatura que sabe não pertencer à pessoa indicada no documento. Nesse caso, o escrevente pratica, em tese:", "alternativas": {"A": "falsidade ideológica.", "B": "falso reconhecimento de firma ou letra.", "C": "certidão ou atestado falso.", "D": "uso de documento falso.", "E": "advocacia administrativa."}, "gabarito": "B", "artigo_titulo": "Art. 300 do Código Penal", "artigo_texto": "Art. 300 - Reconhecer, como verdadeira, no exercício de função pública, firma ou letra que o não seja: Pena - reclusão, de um a cinco anos, e multa, se o documento é público; e de um a três anos, e multa, se o documento é particular.", "comentario": "É crime próprio. Somente quem exerce função pública de reconhecimento de firma ou letra pode praticá-lo, como tabelião ou escrevente autorizado.", "analise": {"A": "Errada. A falsidade ideológica é mais ampla, mas aqui há tipo específico.", "B": "Correta. Reconhecer assinatura falsa como verdadeira no exercício de função pública configura art. 300.", "C": "Errada. Certidão ou atestado falso é outro tipo penal.", "D": "Errada. O agente não usou documento falso; ele reconheceu falsamente firma ou letra.", "E": "Errada. Não há patrocínio de interesse privado perante a Administração."}, "exemplo": "Escrevente carimba “reconheço a firma” sabendo que a assinatura não pertence à pessoa indicada. Responde pelo art. 300.", "pegadinha": "A banca tenta confundir &#39;usar&#39; assinatura falsa com &#39;reconhecer falsamente&#39; — art. 300 exige que o agente seja tabelião/oficial.", "frase": "Crime próprio: só o tabelião/oficial que SABE ser falsa e mesmo assim reconhece comete o Art. 300."}, {"num": 12, "tema": "Falsidade de atestado médico", "enunciado": "Um médico, no exercício da profissão, fornece atestado falso a paciente, declarando doença inexistente para justificar ausência no trabalho. A conduta do médico caracteriza:", "alternativas": {"A": "falsidade de atestado médico.", "B": "certidão ou atestado falso do art. 301.", "C": "falsificação de documento público.", "D": "falsa identidade.", "E": "corrupção passiva, necessariamente."}, "gabarito": "A", "artigo_titulo": "Art. 302 do Código Penal", "artigo_texto": "Art. 302 - Dar o médico, no exercício da sua profissão, atestado falso: Pena - detenção, de um mês a um ano.<br>Parágrafo único - Se o crime é cometido com o fim de lucro, aplica-se também multa.", "comentario": "O art. 302 é crime próprio. Só o médico, no exercício da profissão, pode praticá-lo. O atestado é formalmente verdadeiro, mas ideologicamente falso quanto à condição médica.", "analise": {"A": "Correta. Médico que dá atestado falso no exercício da profissão pratica art. 302.", "B": "Errada. O art. 301 trata de certidão ou atestado falso emitido em razão de função pública para determinadas finalidades.", "C": "Errada. Não houve falsificação material de documento público.", "D": "Errada. Não houve atribuição de falsa identidade.", "E": "Errada. Só haveria corrupção passiva se houvesse solicitação, recebimento ou promessa de vantagem indevida em razão da função pública, o que não é necessário para o art. 302."}, "exemplo": "Médico fornece atestado de repouso por doença inexistente para ajudar paciente a faltar ao trabalho. Configura art. 302.", "pegadinha": "A banca coloca médico com atestado de conteúdo falso — é falso ideológico. Falsificar a assinatura do médico é falso material.", "frase": "Médico que mente no atestado = Falso Ideológico. Quem falsifica a assinatura do médico = Falso Material."}, {"num": 13, "tema": "Uso de documento falso", "enunciado": "João compra uma CNH falsificada e, durante uma blitz, entrega voluntariamente o documento ao policial, sem ter participado da falsificação. João responderá, em tese, por:", "alternativas": {"A": "falsificação de documento público.", "B": "uso de documento falso.", "C": "uso de documento de identidade alheio.", "D": "falsa identidade.", "E": "desobediência."}, "gabarito": "B", "artigo_titulo": "Art. 304 do Código Penal", "artigo_texto": "Art. 304 - Fazer uso de qualquer dos papéis falsificados ou alterados, a que se referem os arts. 297 a 302: Pena - a cominada à falsificação ou à alteração.", "comentario": "O uso de documento falso ocorre quando o agente utiliza documento falsificado ou alterado. A pena será a mesma prevista para a falsificação correspondente. Se o documento usado for uma CNH falsa, aplica-se a pena do art. 297.", "analise": {"A": "Errada. João não falsificou; apenas usou.", "B": "Correta. Entregar voluntariamente CNH falsa ao policial configura uso de documento falso.", "C": "Errada. O art. 308 exige documento verdadeiro pertencente a outra pessoa.", "D": "Errada. Não foi apenas mentira verbal sobre identidade.", "E": "Errada. Não houve simples descumprimento de ordem legal."}, "exemplo": "Pessoa compra CNH falsa e a apresenta espontaneamente em blitz. Responde pelo art. 304.", "pegadinha": "A banca faz você esquecer que usar documento falso (Art. 304) é crime autônomo — mesmo sem ter fabricado o documento.", "frase": "Não fabricou mas usou = Art. 304. Fabricou e usou = pode haver consunção conforme o caso."}, {"num": 14, "tema": "Uso de documento verdadeiro alheio", "enunciado": "Durante abordagem policial, Carlos apresenta como seu o RG verdadeiro de seu irmão, sem qualquer adulteração material no documento. Nesse caso, Carlos pratica, em tese:", "alternativas": {"A": "uso de documento falso.", "B": "falsificação de documento público.", "C": "uso de documento de identidade alheio.", "D": "falso reconhecimento de firma.", "E": "falsidade de atestado médico."}, "gabarito": "C", "artigo_titulo": "Art. 308 do Código Penal", "artigo_texto": "Art. 308 - Usar, como próprio, passaporte, título de eleitor, caderneta de reservista ou qualquer documento de identidade alheia ou ceder a outrem, para que dele se utilize, documento dessa natureza, próprio ou de terceiro: Pena - detenção, de quatro meses a dois anos, e multa, se o fato não constitui elemento de crime mais grave.", "comentario": "A diferença central é esta: no art. 304, o documento é falso ou adulterado; no art. 308, o documento é verdadeiro, mas pertence a outra pessoa.", "analise": {"A": "Errada. O documento não era falso.", "B": "Errada. Não houve falsificação ou alteração material.", "C": "Correta. Usar como próprio documento verdadeiro de outra pessoa configura art. 308.", "D": "Errada. Não houve reconhecimento de firma.", "E": "Errada. Não se trata de atestado médico."}, "exemplo": "Indivíduo apresenta o RG verdadeiro do irmão em abordagem policial. Se o documento não foi adulterado, o crime é art. 308.", "pegadinha": "A banca quer que você marque estelionato quando o agente usa documento verdadeiro de outra pessoa — o crime é Art. 308.", "frase": "Documento verdadeiro + identidade alheia = Art. 308. Documento falso = Art. 304."}, {"num": 15, "tema": "Falsa identidade", "enunciado": "Ao ser abordado por autoridade policial, o agente atribui a si nome falso, sem apresentar documento, com a finalidade de ocultar seus antecedentes. Conforme entendimento sumulado do STJ, a conduta:", "alternativas": {"A": "é atípica, por constituir exercício de autodefesa.", "B": "configura falsa identidade, ainda que alegada autodefesa.", "C": "configura uso de documento falso.", "D": "configura desobediência.", "E": "configura resistência."}, "gabarito": "B", "artigo_titulo": "Art. 307 do Código Penal", "artigo_texto": "Art. 307 - Atribuir-se ou atribuir a terceiro falsa identidade para obter vantagem, em proveito próprio ou alheio, ou para causar dano a outrem: Pena - detenção, de três meses a um ano, ou multa, se o fato não constitui elemento de crime mais grave.", "comentario": "A falsa identidade é crime subsidiário e exige finalidade de obter vantagem ou causar dano. O STJ consolidou que atribuir-se falsa identidade perante autoridade policial é conduta típica, ainda que em situação de alegada autodefesa.", "analise": {"A": "Errada. O entendimento sumulado do STJ afasta a tese de atipicidade por autodefesa.", "B": "Correta. Mentir o nome para autoridade policial pode configurar falsa identidade.", "C": "Errada. Não houve apresentação de documento falso.", "D": "Errada. Desobediência é descumprimento de ordem legal.", "E": "Errada. Resistência exige violência ou ameaça contra ato legal."}, "exemplo": "Pessoa presa em flagrante informa nome falso ao policial para ocultar antecedentes. Responde por falsa identidade.", "pegadinha": "A banca troca falsa identidade com uso de documento falso — no art. 307 o agente atribui identidade falsa SEM documento.", "frase": "Sem documento: falsa identidade (Art. 307). Com documento falso: uso de documento falso (Art. 304)."}, {"num": 16, "tema": "Adulteração de sinal identificador de veículo", "enunciado": "Um motorista coloca fita isolante na placa do veículo para modificar visualmente uma letra e evitar multas de trânsito. Conforme entendimento jurisprudencial destacado no material, a conduta:", "alternativas": {"A": "é mero ilícito administrativo.", "B": "configura apenas desobediência.", "C": "configura adulteração de sinal identificador de veículo automotor.", "D": "configura falsa identidade.", "E": "configura uso de documento falso."}, "gabarito": "C", "artigo_titulo": "Art. 311 do Código Penal", "artigo_texto": "Art. 311 - Adulterar ou remarcar número de chassi ou qualquer sinal identificador de veículo automotor, de seu componente ou equipamento: Pena - reclusão, de três a seis anos, e multa.<br>§ 1º - Se o agente comete o crime no exercício da função pública ou em razão dela, a pena é aumentada de um terço.<br>§ 2º - Incorre nas mesmas penas o funcionário público que contribui para o licenciamento ou registro do veículo remarcado ou adulterado, fornecendo indevidamente material ou informação oficial.", "comentario": "A placa é sinal identificador externo do veículo. O entendimento destacado no material é que a alteração de placa com fita adesiva pode configurar o art. 311, ainda que a modificação não seja permanente.", "analise": {"A": "Errada. O material destaca que não é mero ilícito administrativo quando há adulteração do sinal identificador.", "B": "Errada. Não se trata apenas de descumprir ordem.", "C": "Correta. Alterar visualmente letras ou números da placa configura adulteração de sinal identificador.", "D": "Errada. Não houve atribuição de falsa identidade pessoal.", "E": "Errada. Placa adulterada não é uso de documento falso nesse contexto."}, "exemplo": "Colocar fita isolante para transformar a letra “F” em “E” na placa do carro configura art. 311.", "pegadinha": "A banca esquece o elemento subjetivo: adulteração de chassi/placa SEM finalidade de obter vantagem ou causar dano não configura o art. 311.", "frase": "Adulterou para obter vantagem ou causar dano = Art. 311. Sem essa finalidade = atípico."}, {"num": 17, "tema": "Peculato", "enunciado": "Um policial, em razão do cargo, recebe os pertences de um preso para guarda na repartição. Em vez de guardá-los, leva os objetos para casa e os vende. A conduta caracteriza:", "alternativas": {"A": "furto simples.", "B": "peculato-apropriação.", "C": "peculato-furto.", "D": "emprego irregular de verbas públicas.", "E": "concussão."}, "gabarito": "B", "artigo_titulo": "Art. 312 do Código Penal", "artigo_texto": "Art. 312 - Apropriar-se o funcionário público de dinheiro, valor ou qualquer outro bem móvel, público ou particular, de que tem a posse em razão do cargo, ou desviá-lo, em proveito próprio ou alheio: Pena - reclusão, de dois a doze anos, e multa.<br>§ 1º - Aplica-se a mesma pena, se o funcionário público, embora não tendo a posse do dinheiro, valor ou bem, o subtrai, ou concorre para que seja subtraído, em proveito próprio ou alheio, valendo-se de facilidade que lhe proporciona a qualidade de funcionário.<br>§ 2º - Se o funcionário concorre culposamente para o crime de outrem: Pena - detenção, de três meses a um ano.<br>§ 3º - No caso do parágrafo anterior, a reparação do dano, se precede à sentença irrecorrível, extingue a punibilidade; se lhe é posterior, reduz de metade a pena imposta.", "comentario": "O peculato-apropriação ocorre quando o funcionário público tem posse lícita do bem em razão do cargo e passa a agir como dono. O bem pode ser público ou particular, desde que esteja sob guarda da Administração.", "analise": {"A": "Errada. Não é furto simples, pois o agente é funcionário público e tinha posse do bem em razão do cargo.", "B": "Correta. Trata-se de peculato-apropriação.", "C": "Errada. Peculato-furto ocorre quando o funcionário não tem a posse, mas subtrai valendo-se da facilidade do cargo.", "D": "Errada. Não envolve verba pública aplicada fora da destinação legal.", "E": "Errada. Não houve exigência de vantagem indevida."}, "exemplo": "Policial recebe objetos de preso para guarda e vende os bens. Como tinha posse em razão do cargo, responde por peculato-apropriação.", "pegadinha": "A banca coloca funcionário pegando dinheiro que passava por ele em razão do cargo e quer que você marque furto — é peculato.", "frase": "Funcionário + dinheiro em razão do cargo + apossou-se = Peculato. Sem relação com o cargo = outro crime."}, {"num": 18, "tema": "Peculato culposo e reparação do dano", "enunciado": "Servidor público, por negligência, deixa o cofre da repartição aberto, permitindo que terceiro subtraia valores públicos. Antes do trânsito em julgado da sentença condenatória, o servidor repara integralmente o dano. Nesse caso, conforme o Código Penal:", "alternativas": {"A": "a reparação do dano não gera qualquer efeito penal.", "B": "a reparação reduz a pena pela metade, necessariamente.", "C": "a reparação extingue a punibilidade, por se tratar de peculato culposo.", "D": "a reparação transforma o crime em furto.", "E": "a reparação só extingue a punibilidade se houver autorização judicial prévia."}, "gabarito": "C", "artigo_titulo": "Art. 312, §§2º e 3º, do Código Penal", "artigo_texto": "Art. 312 - Apropriar-se o funcionário público de dinheiro, valor ou qualquer outro bem móvel, público ou particular, de que tem a posse em razão do cargo, ou desviá-lo, em proveito próprio ou alheio: Pena - reclusão, de dois a doze anos, e multa.<br>§ 1º - Aplica-se a mesma pena, se o funcionário público, embora não tendo a posse do dinheiro, valor ou bem, o subtrai, ou concorre para que seja subtraído, em proveito próprio ou alheio, valendo-se de facilidade que lhe proporciona a qualidade de funcionário.<br>§ 2º - Se o funcionário concorre culposamente para o crime de outrem: Pena - detenção, de três meses a um ano.<br>§ 3º - No caso do parágrafo anterior, a reparação do dano, se precede à sentença irrecorrível, extingue a punibilidade; se lhe é posterior, reduz de metade a pena imposta.", "comentario": "Essa é uma das pegadinhas mais importantes do peculato. No peculato culposo, se a reparação do dano ocorre antes da sentença irrecorrível, extingue-se a punibilidade. Se ocorre depois, reduz-se a pena pela metade.", "analise": {"A": "Errada. A reparação produz efeito penal no peculato culposo.", "B": "Errada. A redução pela metade ocorre se a reparação for posterior à sentença irrecorrível.", "C": "Correta. Reparação antes do trânsito em julgado extingue a punibilidade.", "D": "Errada. A reparação não muda o tipo penal para furto.", "E": "Errada. O dispositivo legal não exige autorização judicial prévia para produzir o efeito previsto."}, "exemplo": "Servidor esquece cofre aberto por negligência, terceiro furta dinheiro e o servidor repara o dano antes do trânsito em julgado. Extingue-se a punibilidade.", "pegadinha": "A banca esquece que no peculato culposo a reparação ANTES da sentença irrecorrível extingue a punibilidade — não apenas reduz.", "frase": "Peculato culposo + repara antes da sentença = extingue punibilidade. Depois = só reduz a metade."}, {"num": 19, "tema": "Concussão x corrupção passiva", "enunciado": "Um fiscal público, durante vistoria, diz ao comerciante: “Ou você me paga R$ 1.000,00 agora, ou vou interditar seu estabelecimento”. O comerciante, temendo o ato administrativo, paga a quantia. A conduta do fiscal caracteriza:", "alternativas": {"A": "corrupção passiva, pois recebeu vantagem indevida.", "B": "concussão, pois exigiu vantagem indevida em razão da função.", "C": "prevaricação, pois retardou ato de ofício.", "D": "advocacia administrativa.", "E": "tráfico de influência."}, "gabarito": "B", "artigo_titulo": "Art. 316 do Código Penal", "artigo_texto": "Art. 316 - Exigir, para si ou para outrem, direta ou indiretamente, ainda que fora da função ou antes de assumi-la, mas em razão dela, vantagem indevida: Pena - reclusão, de 2 (dois) a 12 (doze) anos, e multa.<br>§ 1º - Se o funcionário exige tributo ou contribuição social que sabe ou deveria saber indevido, ou, quando devido, emprega na cobrança meio vexatório ou gravoso, que a lei não autoriza: Pena - reclusão, de 3 (três) a 8 (oito) anos, e multa.<br>§ 2º - Se o funcionário desvia, em proveito próprio ou de outrem, o que recebeu indevidamente para recolher aos cofres públicos: Pena - reclusão, de dois a doze anos, e multa.", "comentario": "Concussão é o crime do “exigir”. O funcionário público impõe, ordena, constrange moralmente a vítima, usando o peso do cargo. Não é necessário que receba a vantagem para consumar o crime, pois se trata de crime formal.", "analise": {"A": "Errada. Corrupção passiva envolve solicitar, receber ou aceitar promessa. Aqui houve exigência.", "B": "Correta. Exigir vantagem indevida em razão da função é concussão.", "C": "Errada. Prevaricação é retardar, deixar de praticar ou praticar ato contra lei para satisfazer interesse ou sentimento pessoal.", "D": "Errada. Advocacia administrativa é patrocinar interesse privado perante a Administração.", "E": "Errada. Tráfico de influência é vender falsa influência sobre funcionário público."}, "exemplo": "Policial diz ao motorista: “Pague agora ou vou apreender seu veículo”. Se a vantagem é indevida e exigida em razão da função, há concussão.", "pegadinha": "A banca confunde concussão (EXIGIR com intimidação) com corrupção passiva (solicitar/receber sem intimidação).", "frase": "EXIGIU com intimidação = Concussão (Art. 316). SOLICITOU/RECEBEU = Corrupção Passiva (Art. 317)."}, {"num": 20, "tema": "Corrupção passiva privilegiada", "enunciado": "Funcionário público, cedendo a pedido de amigo, deixa de praticar ato de ofício que deveria realizar. Não recebe dinheiro, presente ou promessa de vantagem econômica. A conduta, em tese, caracteriza:", "alternativas": {"A": "corrupção passiva privilegiada.", "B": "concussão.", "C": "peculato.", "D": "excesso de exação.", "E": "tráfico de influência."}, "gabarito": "A", "artigo_titulo": "Art. 317, §2º, do Código Penal", "artigo_texto": "Art. 317 - Solicitar ou receber, para si ou para outrem, direta ou indiretamente, ainda que fora da função ou antes de assumi-la, mas em razão dela, vantagem indevida, ou aceitar promessa de tal vantagem: Pena – reclusão, de 2 (dois) a 12 (doze) anos, e multa.<br>§ 1º - A pena é aumentada de um terço, se, em consequência da vantagem ou promessa, o funcionário retarda ou deixa de praticar qualquer ato de ofício ou o pratica infringindo dever funcional.<br>§ 2º - Se o funcionário pratica, deixa de praticar ou retarda ato de ofício, com infração de dever funcional, cedendo a pedido ou influência de outrem: Pena - detenção, de três meses a um ano, ou multa.", "comentario": "A corrupção passiva privilegiada ocorre quando o funcionário pratica, deixa de praticar ou retarda ato de ofício, infringindo dever funcional, cedendo a pedido ou influência de outra pessoa. A diferença para a corrupção passiva comum é que, aqui, não há solicitação, recebimento ou promessa de vantagem indevida.", "analise": {"A": "Correta. Ceder a pedido de amigo, sem vantagem econômica, caracteriza corrupção passiva privilegiada.", "B": "Errada. Concussão exige vantagem indevida.", "C": "Errada. Peculato envolve apropriação, desvio, subtração ou culpa relacionada a bens públicos ou particulares sob guarda da Administração.", "D": "Errada. Excesso de exação envolve cobrança indevida ou vexatória de tributo ou contribuição social.", "E": "Errada. Tráfico de influência é crime praticado por quem solicita, exige, cobra ou obtém vantagem a pretexto de influir em ato de funcionário público."}, "exemplo": "Servidor deixa de multar amigo porque este pediu “uma força”. Não recebe dinheiro nem promessa de vantagem. Responde pelo art. 317, §2º.<br># REVISÃO FINAL DOS GABARITOS<br>1. C<br>2. C<br>3. B<br>4. C<br>5. C<br>6. B<br>7. D<br>8. C<br>9. C<br>10. C<br>11. B<br>12. A<br>13. B<br>14. C<br>15. B<br>16. C<br>17. B<br>18. C<br>19. B<br>20. A<br># OBSERVAÇÕES DE RETA FINAL<br>1. Moeda falsa com boa-fé inicial e repasse posterior = art. 289, §2º.<br>2. Falsificação grosseira afasta crime contra a fé pública.<br>3. Art. 290 usa fragmentos verdadeiros ou retira sinal de inutilização.<br>4. Petrecho exige objeto especialmente destinado à falsificação.<br>5. Selo tributário = art. 293.<br>6. Selo/carimbo autenticador = art. 296.<br>7. Falso material = documento fisicamente falso ou alterado.<br>8. Falso ideológico = documento verdadeiro com mentira no conteúdo.<br>9. Cartão de crédito/débito = documento particular.<br>10. Documento falso = art. 304.<br>11. Documento verdadeiro de outra pessoa = art. 308.<br>12. Mentir nome para polícia = falsa identidade, art. 307.<br>13. Fita na placa pode configurar art. 311.<br>14. Peculato culposo com reparação antes do trânsito = extingue punibilidade.<br>15. Exigir vantagem = concussão.<br>16. Solicitar/receber/aceitar promessa = corrupção passiva.<br>17. Ceder a pedido de amigo sem vantagem = corrupção passiva privilegiada.", "pegadinha": "A banca ignora o privilégio do art. 317, §2º: funcionário que cede à pressão e age CONFORME o dever tem pena reduzida.", "frase": "Corrupção passiva privilegiada = cedeu à pressão + agiu conforme o dever = pena reduzida."}];
+
+let estado = {}; // num -> {resposta, acertou}
+let questaoAtiva = null;
+
+// Inicializa menu
+function initMenu(){
+  const grid = document.getElementById('qr-menu-grid');
+  grid.innerHTML = '';
+  QR_DATA.forEach(q => {
+    const btn = document.createElement('button');
+    btn.className = 'qr-menu-btn';
+    btn.id = 'qmenu-' + q.num;
+    btn.onclick = () => abrirQuestao(q.num);
+    btn.innerHTML = `<span class="qm-num">Q${String(q.num).padStart(2,'0')}</span><span class="qm-tema">${q.tema}</span>`;
+    grid.appendChild(btn);
+  });
+}
+
+// Gera cards
+function initCards(){
+  const wrap = document.getElementById('qr-cards-wrap');
+  wrap.innerHTML = '';
+  QR_DATA.forEach(q => {
+    const card = document.createElement('div');
+    card.className = 'qr-card';
+    card.id = 'qcard-' + q.num;
+
+    // Alternativas HTML
+    let altsHtml = '';
+    ['A','B','C','D','E'].forEach(letra => {
+      if(q.alternativas[letra]){
+        altsHtml += `<div class="qr-alt" id="qalt-${q.num}-${letra}" onclick="selecionarAlt(${q.num},'${letra}')">
+          <div class="qr-alt-letra">${letra}</div>
+          <div class="qr-alt-texto">${q.alternativas[letra]}</div>
+        </div>`;
+      }
+    });
+
+    // Análise das alternativas HTML
+    let analiseHtml = '';
+    ['A','B','C','D','E'].forEach(letra => {
+      if(q.analise[letra]){
+        const isCerta = letra === q.gabarito;
+        analiseHtml += `<div class="alt-item ${isCerta?'alt-certa':'alt-errada'}">
+          <strong>${isCerta?'✅':'❌'} ${letra})</strong> ${q.analise[letra]}
+        </div>`;
+      }
+    });
+
+    // Lei HTML
+    const leiLines = q.artigo_texto ? q.artigo_texto.split('<br>').filter(l=>l.trim()).map(l=>`<div class="lei-line">${l}</div>`).join('') : '';
+
+    card.innerHTML = `
+      <div class="qr-card-header">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="qnum">Questão ${String(q.num).padStart(2,'0')}</span>
+          <span class="qtema">${q.tema}</span>
+        </div>
+        <div class="qnav">
+          <button onclick="navegarQuestao(${q.num},-1)">← Anterior</button>
+          <button onclick="voltarMenu()">☰ Índice</button>
+          <button onclick="navegarQuestao(${q.num},1)">Próxima →</button>
+        </div>
+      </div>
+      <div class="qr-enunciado">${q.enunciado}</div>
+      <div class="qr-alternativas" id="qalts-${q.num}">${altsHtml}</div>
+      <div class="qr-actions">
+        <button class="qr-btn qr-btn-responder" id="qbtn-${q.num}" onclick="responder(${q.num})" disabled>Confirmar Resposta</button>
+        <button class="qr-btn qr-btn-menu" onclick="voltarMenu()">☰ Índice de Questões</button>
+      </div>
+      <div class="qr-feedback" id="qfb-${q.num}">
+        <div class="qr-feedback-header">
+          <span class="fb-icon" id="qfb-icon-${q.num}"></span>
+          <div>
+            <div class="fb-resultado" id="qfb-res-${q.num}"></div>
+            <div class="fb-gabarito">✅ GABARITO: LETRA ${q.gabarito}</div>
+          </div>
+        </div>
+        <div class="qr-gabarito-body">
+          <div class="qr-gab-bloco">
+            <div class="qr-gab-label">📖 Artigo de Referência — ${q.artigo_titulo}</div>
+            <div class="qr-gab-content">${leiLines || '<em>Conforme CP.</em>'}</div>
+          </div>
+          <div class="qr-gab-bloco">
+            <div class="qr-gab-label">🧠 Comentário Doutrinário</div>
+            <div class="qr-gab-content">${q.comentario || ''}</div>
+          </div>
+          <div class="qr-gab-bloco">
+            <div class="qr-gab-label">🔎 Análise das Alternativas</div>
+            <div class="qr-gab-content">${analiseHtml}</div>
+          </div>
+          ${q.exemplo ? `<div class="qr-gab-bloco">
+            <div class="qr-gab-label">🎯 Exemplo Concreto</div>
+            <div class="qr-gab-content">${q.exemplo}</div>
+          </div>` : ''}
+          ${q.pegadinha ? `<div class="qr-gab-bloco">
+            <div class="qr-gab-destaque">🚨 Pegadinha de Prova: ${q.pegadinha}</div>
+          </div>` : ''}
+          ${q.frase ? `<div class="qr-gab-bloco">
+            <div class="qr-gab-frase">🧩 Frase de Memorização: ${q.frase}</div>
+          </div>` : ''}
+        </div>
+      </div>`;
+    wrap.appendChild(card);
+  });
+}
+
+function abrirQuestao(num){
+  // Fecha todos os cards
+  document.querySelectorAll('.qr-card').forEach(c => c.classList.remove('ativo'));
+  document.getElementById('qr-menu').style.display = 'none';
+  document.getElementById('qr-resultado-final').style.display = 'none';
+  const card = document.getElementById('qcard-' + num);
+  if(card){
+    card.classList.add('ativo');
+    questaoAtiva = num;
+    card.scrollIntoView({behavior:'smooth', block:'start'});
+    // Se já foi respondida, mostra gabarito
+    if(estado[num]){
+      mostrarGabarito(num, estado[num].acertou, estado[num].resposta);
+    }
+  }
+}
+
+function voltarMenu(){
+  document.querySelectorAll('.qr-card').forEach(c => c.classList.remove('ativo'));
+  document.getElementById('qr-menu').style.display = 'block';
+  document.getElementById('qr-resultado-final').style.display = 'none';
+  questaoAtiva = null;
+  document.getElementById('secao-questoes').scrollIntoView({behavior:'smooth'});
+}
+
+function navegarQuestao(num, dir){
+  const idx = QR_DATA.findIndex(q => q.num === num);
+  const nextIdx = idx + dir;
+  if(nextIdx >= 0 && nextIdx < QR_DATA.length){
+    abrirQuestao(QR_DATA[nextIdx].num);
+  }
+}
+
+function selecionarAlt(num, letra){
+  if(estado[num]) return; // já respondida
+  // Remove seleção anterior
+  document.querySelectorAll(`#qalts-${num} .qr-alt`).forEach(a => a.classList.remove('selecionada'));
+  document.getElementById(`qalt-${num}-${letra}`).classList.add('selecionada');
+  document.getElementById(`qbtn-${num}`).disabled = false;
+  document.getElementById(`qbtn-${num}`).setAttribute('data-sel', letra);
+}
+
+function responder(num){
+  if(estado[num]) return;
+  const btn = document.getElementById(`qbtn-${num}`);
+  const sel = btn.getAttribute('data-sel');
+  if(!sel) return;
+  
+  const q = QR_DATA.find(qq => qq.num === num);
+  const acertou = sel === q.gabarito;
+  
+  estado[num] = {resposta: sel, acertou};
+  
+  // Bloqueia alternativas
+  document.querySelectorAll(`#qalts-${num} .qr-alt`).forEach(a => a.classList.add('bloqueada'));
+  // Marca certa e errada
+  document.getElementById(`qalt-${num}-${q.gabarito}`).classList.add('correta');
+  if(!acertou) document.getElementById(`qalt-${num}-${sel}`).classList.add('errada');
+  
+  // Esconde botão responder
+  btn.style.display = 'none';
+  
+  mostrarGabarito(num, acertou, sel);
+  atualizarPlacar();
+  atualizarMenuBtn(num, acertou);
+  verificarConclusao();
+}
+
+function mostrarGabarito(num, acertou, sel){
+  const fb = document.getElementById(`qfb-${num}`);
+  fb.className = 'qr-feedback ' + (acertou ? 'acertou' : 'errou');
+  fb.style.display = 'block';
+  document.getElementById(`qfb-icon-${num}`).textContent = acertou ? '🎉' : '❌';
+  document.getElementById(`qfb-res-${num}`).textContent = acertou ? 'Resposta Correta!' : `Resposta Errada — Você marcou: ${sel}`;
+}
+
+function atualizarPlacar(){
+  const respondidas = Object.values(estado);
+  const acertos = respondidas.filter(e => e.acertou).length;
+  const erros = respondidas.filter(e => !e.acertou).length;
+  const total = QR_DATA.length;
+  const perc = respondidas.length > 0 ? Math.round((acertos/respondidas.length)*100) : 0;
+  
+  document.getElementById('qr-acertos').textContent = acertos;
+  document.getElementById('qr-erros').textContent = erros;
+  document.getElementById('qr-perc').textContent = perc + '%';
+  document.getElementById('qr-progress').style.width = Math.round((respondidas.length/total)*100) + '%';
+}
+
+function atualizarMenuBtn(num, acertou){
+  const btn = document.getElementById('qmenu-' + num);
+  if(btn){
+    btn.classList.remove('respondida-certa','respondida-errada');
+    btn.classList.add(acertou ? 'respondida-certa' : 'respondida-errada');
+    const icon = document.createElement('span');
+    icon.className = 'qm-icon';
+    icon.textContent = acertou ? '✅' : '❌';
+    // Remove ícone anterior se houver
+    const oldIcon = btn.querySelector('.qm-icon');
+    if(oldIcon) oldIcon.remove();
+    btn.appendChild(icon);
+  }
+}
+
+function verificarConclusao(){
+  if(Object.keys(estado).length === QR_DATA.length){
+    const acertos = Object.values(estado).filter(e => e.acertou).length;
+    const perc = Math.round((acertos/QR_DATA.length)*100);
+    let msg = '';
+    if(perc >= 90) msg = '🏆 Excelente! Você está preparado para a prova!';
+    else if(perc >= 70) msg = '✅ Bom desempenho! Revise os erros e garanta aprovação.';
+    else if(perc >= 50) msg = '⚠️ Desempenho médio. Revise os artigos das questões erradas.';
+    else msg = '❌ Abaixo do esperado. Revise o material teórico antes de refazer.';
+    
+    document.getElementById('rf-perc').textContent = perc + '%';
+    document.getElementById('rf-stats').textContent = `${acertos} acertos de ${QR_DATA.length} questões`;
+    document.getElementById('rf-msg').textContent = msg;
+    
+    setTimeout(() => {
+      voltarMenu();
+      document.getElementById('qr-resultado-final').style.display = 'block';
+    }, 1500);
+  }
+}
+
+function reiniciarQuestoes(){
+  estado = {};
+  questaoAtiva = null;
+  document.getElementById('qr-acertos').textContent = '0';
+  document.getElementById('qr-erros').textContent = '0';
+  document.getElementById('qr-perc').textContent = '0%';
+  document.getElementById('qr-progress').style.width = '0%';
+  document.getElementById('qr-resultado-final').style.display = 'none';
+  document.querySelectorAll('.qr-menu-btn').forEach(b => {
+    b.classList.remove('respondida-certa','respondida-errada');
+    const icon = b.querySelector('.qm-icon');
+    if(icon) icon.remove();
+  });
+  initCards();
+  document.getElementById('qr-menu').style.display = 'block';
+}
+
+// Boot
+initMenu();
+initCards();
+})();
+</script>
+
 </body>
 </html>
